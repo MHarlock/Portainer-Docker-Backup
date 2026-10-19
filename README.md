@@ -21,7 +21,7 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
 1. **Mount CIFS sul Raspberry Pi** (es. in `/etc/fstab`):
    ```text
    //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
-
+```
     File di configurazione (backup_config.json e telegram_config.json) posizionati nella cartella dello script (es. /opt/docker-backup/).
 
     Esecuzione Manuale:
