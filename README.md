@@ -69,9 +69,9 @@ The project ensures total protection of data and configurations, strictly preser
     Recreate the container using the saved docker-compose.yml file.
 
     If the service used an archived bind mount, restore the files by extracting the .tar.gz archive as root:
-    Bash
-
+    ```bash
     sudo tar xzf <folder_name>.tar.gz -C /target/path/
+    ```
 
 ## 📝 License
 
