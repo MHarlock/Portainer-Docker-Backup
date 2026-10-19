@@ -36,12 +36,12 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
 
     0 3 * * * /usr/bin/python3 /opt/docker-backup/portainer_docker_backup.py >> /opt/docker-backup/cron_execution.log 2>&1
 
-🇬🇧 English
+## 🇬🇧 English
 
 A resilient, automated, and independent Python-based backup system designed to back up Docker containers from a Raspberry Pi to a NAS network share (via CIFS/SMB mount).
 
 The project ensures total protection of data and configurations, strictly preserving POSIX permissions and owners (root:root and container-specific UIDs) through a mixed strategy of compressed archives and intelligent synchronization.
-🌟 Key Features
+### 🌟 Key Features
 
     Portainer-First Strategy: At startup, the script inspects Portainer's internal volume and automatically extracts the original docker-compose.yml files for all registered stacks.
 
