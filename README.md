@@ -30,9 +30,9 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
     ```
 
     Automazione Notturna (Cron):
-    '''Plaintext
+    ```plaintext
     0 3 * * * /usr/bin/python3 /opt/docker-backup/portainer_docker_backup.py >> /opt/docker-backup/cron_execution.log 2>&1
-   ```
+    ```
 
 ## 🇬🇧 English
 
