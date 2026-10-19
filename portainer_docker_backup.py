@@ -2,8 +2,10 @@
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
+import tempfile
 import urllib.parse
 import urllib.request
 from collections import defaultdict
@@ -82,25 +84,23 @@ def run_command(cmd: list) -> bool:
 
 
 def get_container_metadata(container_name: str) -> dict:
-    """Estrae l'immagine, il digest SHA256, le variabili d'ambiente, le reti e lo stato del container."""
     try:
         cmd = ["docker", "inspect", container_name]
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
         data = json.loads(result.stdout)[0]
 
         env_vars = data.get("Config", {}).get("Env", [])
-        
         networks_data = data.get("NetworkSettings", {}).get("Networks", {})
-        networks_info = {}
-        for net_name, net_config in networks_data.items():
-            networks_info[net_name] = {
+        networks_info = {
+            net_name: {
                 "ip_address": net_config.get("IPAddress", ""),
                 "gateway": net_config.get("Gateway", ""),
                 "mac_address": net_config.get("MacAddress", "")
             }
+            for net_name, net_config in networks_data.items()
+        }
 
         ports = data.get("HostConfig", {}).get("PortBindings", {})
-
         mounts = data.get("Mounts", [])
         mounts_info = [
             {
@@ -125,16 +125,10 @@ def get_container_metadata(container_name: str) -> dict:
         }
     except Exception as e:
         logging.error(f"Errore durante l'estrazione metadati per '{container_name}': {e}")
-        return {
-            "container": container_name,
-            "image_tag": "unknown",
-            "image_id": "unknown",
-            "error": str(e)
-        }
+        return {"container": container_name, "image_tag": "unknown", "image_id": "unknown", "error": str(e)}
 
 
 def save_container_metadata(container_name: str, container_dest: Path):
-    """Salva il file JSON dei metadati estesi direttamente nella cartella dedicata al container."""
     container_dest.mkdir(parents=True, exist_ok=True)
     metadata_file = container_dest / f"{container_name}_metadata.json"
     
@@ -152,6 +146,43 @@ def save_container_metadata(container_name: str, container_dest: Path):
         logging.error(f"Impossibile salvare i metadati per {container_name}: {e}")
 
 
+def extract_portainer_compose_files(volume_name: str = "portainer_data") -> dict:
+    extracted_composes = {}
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        logging.info(f"Estrazione temporanea degli stack dal volume Portainer '{volume_name}'...")
+        
+        copy_cmd = [
+            "docker", "run", "--rm",
+            "-v", f"{volume_name}:/portainer:ro",
+            "-v", f"{tmp_path.resolve()}:/out",
+            "alpine",
+            "sh", "-c", "if [ -d /portainer/compose ]; then cp -r /portainer/compose /out/; fi"
+        ]
+        if not run_command(copy_cmd):
+            logging.warning("Impossibile accedere alla directory 'compose' del volume Portainer.")
+            return extracted_composes
+
+        compose_dir = tmp_path / "compose"
+        if not compose_dir.exists():
+            return extracted_composes
+
+        for folder in compose_dir.iterdir():
+            if folder.is_dir():
+                yml_file = folder / "docker-compose.yml"
+                if yml_file.exists():
+                    try:
+                        content = yml_file.read_text(encoding="utf-8")
+                        service_names = re.findall(r"^\s{2,4}([a-zA-Z0-9_-]+):", content, re.MULTILINE)
+                        for service in service_names:
+                            extracted_composes[service.lower()] = content
+                    except Exception as e:
+                        logging.error(f"Errore nella lettura di {yml_file}: {e}")
+
+    logging.info(f"Estratti con successo {len(extracted_composes)} riferimenti compose da Portainer.")
+    return extracted_composes
+
+
 def stop_containers(containers: list):
     if not containers:
         return
@@ -166,44 +197,73 @@ def start_containers(containers: list):
     run_command(["docker", "start"] + containers)
 
 
-def sync_paths(paths: list, container_dest: Path):
-    """Sincronizza i path locali (bind mount / compose) nella sottocartella dedicata."""
+def sync_paths_local(paths: list, container_dest: Path):
+    """Gestisce il backup delle cartelle: creazione .tar.gz (per preservare permessi) oppure rsync diretto sul mount CIFS."""
     container_dest.mkdir(parents=True, exist_ok=True)
-    for src in paths:
+
+    for path_item in paths:
+        if isinstance(path_item, str):
+            src = path_item
+            should_archive = True
+        else:
+            src = path_item.get("path")
+            should_archive = path_item.get("archive", True)
+
         src_path = Path(src)
         if not src_path.exists():
-            logging.warning(f"Percorso ignorato perché non esistente: {src}")
-            continue
+            logging.info(f"Il percorso locale {src} non esiste. Lo creo automaticamente.")
+            try:
+                src_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                logging.error(f"Impossibile creare la cartella locale {src}: {e}")
+                continue
 
-        target_dir = container_dest / src_path.name
-        target_dir.mkdir(parents=True, exist_ok=True)
+        if should_archive:
+            # Creazione di un archivio .tar.gz salvato direttamente sul mount CIFS.
+            # L'archivio racchiude e mantiene intatti i permessi POSIX e l'owner (root:root / UID container).
+            tar_filename = f"{src_path.name}.tar.gz"
+            dest_tar = container_dest / tar_filename
+            logging.info(f"Creazione archivio compresso per {src} -> {dest_tar}...")
 
-        logging.info(f"Sincronizzazione cartella in corso per: {src} -> {target_dir}")
-        rsync_cmd = [
-            "rsync",
-            "-aAXv",
-            "--delete",
-            "--exclude=*cifs*",
-            "--exclude=*.tmp",
-            f"{src}/",
-            str(target_dir)
-        ]
-        
-        if run_command(rsync_cmd):
-            logging.info(f"Completato: {src}")
+            tar_cmd = ["tar", "czf", str(dest_tar), "-C", str(src_path.parent), src_path.name]
+            if run_command(tar_cmd):
+                logging.info(f"Archivio {tar_filename} creato con successo sul NAS.")
+            else:
+                logging.error(f"Creazione archivio fallita per {src}")
+                return False
         else:
-            logging.error(f"Sincronizzazione fallita per: {src}")
-            return False
+            # Trasferimento diretto sul mount CIFS per file/cartelle già compresse (es. Home Assistant backups)
+            target_dir = container_dest / src_path.name
+            target_dir.mkdir(parents=True, exist_ok=True)
+            logging.info(f"Sincronizzazione diretta (senza ri-compressione) per: {src} -> {target_dir}")
+
+            rsync_cmd = [
+                "rsync",
+                "-rtlv",
+                "--delete",
+                "--no-perms",
+                "--no-owner",
+                "--no-group",
+                "--exclude=*cifs*",
+                "--exclude=*.tmp",
+                f"{src}/",
+                str(target_dir)
+            ]
+            if run_command(rsync_cmd):
+                logging.info(f"Sincronizzazione diretta completata per: {src}")
+            else:
+                logging.error(f"Sincronizzazione diretta fallita per: {src}")
+                return False
+
     return True
 
 
-def backup_docker_volume(volume_name: str, container_dest: Path):
-    """Esegue il backup del volume Docker interno salvandolo nella cartella del container."""
+def backup_docker_volume_local(volume_name: str, container_dest: Path):
     container_dest.mkdir(parents=True, exist_ok=True)
     backup_file = container_dest / f"{volume_name}.tar.gz"
-    
-    logging.info(f"Backup del volume Docker interno '{volume_name}' in corso...")
-    
+
+    logging.info(f"Backup del volume Docker interno '{volume_name}' sul mount locale...")
+
     backup_cmd = [
         "docker", "run", "--rm",
         "-v", f"{volume_name}:/volume:ro",
@@ -211,7 +271,7 @@ def backup_docker_volume(volume_name: str, container_dest: Path):
         "alpine",
         "tar", "czf", f"/backup/{volume_name}.tar.gz", "-C", "/volume", "."
     ]
-    
+
     if run_command(backup_cmd):
         logging.info(f"Volume '{volume_name}' salvato con successo in {backup_file}")
         return True
@@ -234,11 +294,11 @@ def main():
 
     nas_mount = config.get("nas_mount_point")
     subfolder = config.get("backup_destination_subfolder", "portainer_docker")
-    
-    send_telegram_notification(telegram_config, "🚀 *Backup Docker avviato* sul Raspberry Pi.")
+
+    send_telegram_notification(telegram_config, "🚀 *Backup Docker avviato* (Destinazione CIFS locale).")
 
     if not check_mount_point(nas_mount):
-        err_msg = f"❌ *ERRORE CRITICO:* Il NAS ({nas_mount}) non è montato. Backup interrotto!"
+        err_msg = f"❌ *ERRORE CRITICO:* Il punto di mount NAS ({nas_mount}) non è raggiungibile o montato! Backup interrotto."
         logging.error(err_msg)
         send_telegram_notification(telegram_config, err_msg)
         sys.exit(1)
@@ -255,6 +315,7 @@ def main():
         grouped_tasks[group]["items"].append(item)
 
     global_success = True
+    portainer_extracted_composes = {}
 
     for group_key, data in grouped_tasks.items():
         items = data["items"]
@@ -278,30 +339,45 @@ def main():
                     continue
 
                 container_dest = base_backup_dest / name
+                container_dest.mkdir(parents=True, exist_ok=True)
 
-                # 1. Salvataggio metadati estesi a runtime
+                # 1. Metadati a runtime
                 save_container_metadata(name, container_dest)
 
-                # 2. Sincronizzazione percorsi e file compose (rsync)
+                # 2. Backup cartelle locali (archiviate in .tar.gz o rsync diretto in base al flag)
                 if paths:
-                    success_sync = sync_paths(paths, container_dest)
+                    success_sync = sync_paths_local(paths, container_dest)
                     if not success_sync:
                         global_success = False
 
                 # 3. Backup volumi interni Docker (.tar.gz)
                 for vol in volumes:
-                    success_vol = backup_docker_volume(vol, container_dest)
+                    success_vol = backup_docker_volume_local(vol, container_dest)
                     if not success_vol:
                         global_success = False
+
+                # 4. Estrazione compose da Portainer se elaboriamo Portainer
+                if name == "portainer":
+                    portainer_extracted_composes = extract_portainer_compose_files("portainer_data")
+
+                # 5. Salvataggio compose estratto sul NAS
+                clean_name = name.lower()
+                if clean_name in portainer_extracted_composes:
+                    compose_dest = container_dest / "docker-compose.yml"
+                    try:
+                        compose_dest.write_text(portainer_extracted_composes[clean_name], encoding="utf-8")
+                        logging.info(f"File docker-compose.yml salvato per '{name}' in: {compose_dest}")
+                    except Exception as e:
+                        logging.error(f"Impossibile salvare il docker-compose.yml estratto per {name}: {e}")
 
         finally:
             if stopped_successfully and group_containers:
                 start_containers(group_containers)
 
-        logging.info(f"--- Blocco {group_key} completato --́n")
+        logging.info(f"--- Blocco {group_key} completato ---\n")
 
     if global_success:
-        success_msg = "✅ *Backup Docker completato con successo!* Configurazioni, volumi e metadati salvati."
+        success_msg = "✅ *Backup Docker completato con successo!* Archivi e configurazioni salvati sul NAS."
         logging.info(success_msg)
         send_telegram_notification(telegram_config, success_msg)
     else:
