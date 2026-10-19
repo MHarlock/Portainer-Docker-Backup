@@ -63,11 +63,8 @@ The project ensures total protection of data and configurations, strictly preser
 ## 🔄 Disaster Recovery (to be implemented)
 
     Install Docker and Portainer on the new host.
-
     Locate the container's backup folder on the NAS (/media/nas/backup/portainer_docker/<container_name>/).
-
     Recreate the container using the saved docker-compose.yml file.
-
     If the service used an archived bind mount, restore the files by extracting the .tar.gz archive as root:
     ```bash
     sudo tar xzf <folder_name>.tar.gz -C /target/path/
@@ -77,5 +74,3 @@ The project ensures total protection of data and configurations, strictly preser
 
 Distributed under the MIT License. Feel free to use, modify, and adapt it to your needs.
 
-
-<FollowUp term="Vuoi apportare altre modifiche o integrazioni al README.md bilingue?"/>
