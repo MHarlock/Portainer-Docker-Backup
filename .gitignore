@@ -1,4 +1,6 @@
 .venv/
 __pycache__/
 .vscode/
+telegram_config.log
 telegram_config.json
+backup_docker.log
