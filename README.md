@@ -1,4 +1,4 @@
-# 🐳 Raspberry Pi Docker Backup to NAS
+# 🐳 Raspberry Pi Portainer Docker Backup to NAS
 
 [🇮🇹 Italiano](##-italiano) | [🇬🇧 English](##-english)
 
@@ -15,7 +15,7 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
 * **Preservazione dei Permessi POSIX**: I bind mount locali vengono compressi in archivi `.tar.gz` salvati sul NAS, incapsulando e proteggendo i permessi originari e i proprietari (UID/GID).
 * **Archiviazione Selettiva (`archive: true/false`)**: Possibilità di scegliere se comprimere una cartella (`true`) oppure eseguire un trasferimento diretto (`false` per servizi come Home Assistant che generano già backup compressi).
 * **Metadati di Runtime**: Per ogni container viene estratto un file JSON con le informazioni di configurazione (`docker inspect`, variabili d'ambiente, reti e volumi).
-* **Notifiche Telegram**: Invio di report in tempo reale sull'esito dell'esecuzione.
+* **Notifiche Telegram**: Invio di report in tempo reale sull'esito dell'esecuzione (rinominare il file telegram_config.template.json in telegram_config.json dopo aver inserito i dati).
 
 ### ⚙️ Configurazione e Installazione
 1. **Mount CIFS sul Raspberry Pi** (es. in `/etc/fstab`):
@@ -44,7 +44,7 @@ The project ensures total protection of data and configurations, strictly preser
 * **POSIX Permissions Preservation**: Local bind mounts are compressed into .tar.gz archives saved on the NAS, encapsulating and protecting original permissions and ownership (UID/GID).
 * **Selective Archiving (archive: true/false)**: Choose whether to compress a folder (true) or perform a direct transfer (false for services like Home Assistant that already generate compressed backups).
 * **Runtime Metadata**: A JSON file containing configuration details (docker inspect, environment variables, networks, and volumes) is extracted for each container.
-* **Telegram Notifications**: Real-time reports sent directly to Telegram regarding backup execution status.
+* **Telegram Notifications**: Real-time reports sent directly to Telegram regarding backup execution status (rename telegram_config.template.json in telegram_config.json when insert value).
 
 ### ⚙️ Setup and Installation
 1. **CIFS Mount on Raspberry Pi** (e.g., in /etc/fstab):
