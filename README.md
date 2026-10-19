@@ -40,22 +40,15 @@ A resilient, automated, and independent Python-based backup system designed to b
 
 The project ensures total protection of data and configurations, strictly preserving POSIX permissions and owners (root:root and container-specific UIDs) through a mixed strategy of compressed archives and intelligent synchronization.
 ### 🌟 Key Features
+* **Portainer-First Strategy**: At startup, the script inspects Portainer's internal volume and automatically extracts the original docker-compose.yml files for all registered stacks.
+* **POSIX Permissions Preservation**: Local bind mounts are compressed into .tar.gz archives saved on the NAS, encapsulating and protecting original permissions and ownership (UID/GID).
+* **Selective Archiving (archive: true/false)**: Choose whether to compress a folder (true) or perform a direct transfer (false for services like Home Assistant that already generate compressed backups).
+* **Runtime Metadata**: A JSON file containing configuration details (docker inspect, environment variables, networks, and volumes) is extracted for each container.
+* **Telegram Notifications**: Real-time reports sent directly to Telegram regarding backup execution status.
 
-    Portainer-First Strategy: At startup, the script inspects Portainer's internal volume and automatically extracts the original docker-compose.yml files for all registered stacks.
-
-    POSIX Permissions Preservation: Local bind mounts are compressed into .tar.gz archives saved on the NAS, encapsulating and protecting original permissions and ownership (UID/GID).
-
-    Selective Archiving (archive: true/false): Choose whether to compress a folder (true) or perform a direct transfer (false for services like Home Assistant that already generate compressed backups).
-
-    Runtime Metadata: A JSON file containing configuration details (docker inspect, environment variables, networks, and volumes) is extracted for each container.
-
-    Telegram Notifications: Real-time reports sent directly to Telegram regarding backup execution status.
-
-⚙️ Setup and Installation
-
-    CIFS Mount on Raspberry Pi (e.g., in /etc/fstab):
-    Plaintext
-
+### ⚙️ Setup and Installation
+1. **CIFS Mount on Raspberry Pi** (e.g., in /etc/fstab):
+    ```text
     //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1001,gid=100,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
 
     Configuration files (backup_config.json & telegram_config.json) placed in the script directory (e.g., /opt/docker-backup/).
@@ -70,7 +63,7 @@ The project ensures total protection of data and configurations, strictly preser
 
     0 3 * * * /usr/bin/python3 /opt/docker-backup/portainer_docker_backup.py >> /opt/docker-backup/cron_execution.log 2>&1
 
-🔄 Disaster Recovery
+## 🔄 Disaster Recovery (to be implemented)
 
     Install Docker and Portainer on the new host.
 
@@ -83,7 +76,7 @@ The project ensures total protection of data and configurations, strictly preser
 
     sudo tar xzf <folder_name>.tar.gz -C /target/path/
 
-📝 License
+## 📝 License
 
 Distributed under the MIT License. Feel free to use, modify, and adapt it to your needs.
 
