@@ -23,13 +23,25 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
     ```text
     //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
     ```
-2. **File di configurazione**:  
+2. **Crea le credenziali**:
+    con l'utente root:root nella cartella /etc/samba crea il file `credentials` e inserisci queste linee:
+    ```text
+    username=tuo_utente_nas
+    password=tua_password_nas
+    domain=tuo_dominio_opzionale
+    ```
+    e poi esegui:
+    ```bash
+    sudo chown root:root /etc/samba/credentials
+    sudo chmod 600 /etc/samba/credentials
+    ```
+3. **File di configurazione**:  
     `backup_config.json` e `telegram_config.json` vanno posizionati nella cartella dello script (es. /opt/docker-backup/).
-3. **Esecuzione Manuale**:
+4. **Esecuzione Manuale**:
     ```bash
     sudo python3 /opt/docker-backup/portainer_docker_backup.py
     ```
-4. **Automazione Notturna (Cron)**:
+5. **Automazione Notturna (Cron)**:
     ```plaintext
     0 3 * * * /usr/bin/python3 /opt/docker-backup/portainer_docker_backup.py >> /opt/docker-backup/cron_execution.log 2>&1
     ```
@@ -54,6 +66,17 @@ The project ensures total protection of data and configurations, strictly preser
     //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
     ```
 2. **Create `credentials`**:
+    with user `root:root` inside folder `/etc/samba` create file `credentials` and insert this lines:
+    ```text
+    username=your_nas_user
+    password=your_nas_password
+    domain=your_domain_optional
+    ```
+    and run in bash:
+    ```bash
+    sudo chown root:root /etc/samba/credentials
+    sudo chmod 600 /etc/samba/credentials
+    ```
 3. **Configuration files**:
     `backup_config.json` & `telegram_config.json` have to be placed in the script directory (e.g., /opt/docker-backup/).
 4. **Manual Execution**:
@@ -66,7 +89,7 @@ The project ensures total protection of data and configurations, strictly preser
     ```
 
 ## 🔄 Disaster Recovery (to be implemented)
-
+git pull origin main --rebase
 1. Install Docker and Portainer on the new host.
 2. Locate the container's backup folder on the NAS (/media/nas/backup/portainer_docker/<container_name>/).
 3. Recreate the container using the saved docker-compose.yml file.
