@@ -24,7 +24,7 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
     //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
     ```
 2. **File di configurazione**:  
-(backup_config.json e telegram_config.json) posizionati nella cartella dello script (es. /opt/docker-backup/).
+    `backup_config.json` e `telegram_config.json` vanno posizionati nella cartella dello script (es. /opt/docker-backup/).
 3. **Esecuzione Manuale**:
     ```bash
     sudo python3 /opt/docker-backup/portainer_docker_backup.py
@@ -52,31 +52,26 @@ The project ensures total protection of data and configurations, strictly preser
 1. **CIFS Mount on Raspberry Pi** (e.g., in /etc/fstab):
     ```text
     //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
-
-    Configuration files (backup_config.json & telegram_config.json) placed in the script directory (e.g., /opt/docker-backup/).
-
-    Manual Execution:
-    Bash
-
+2. **Configuration files**:
+    `backup_config.json` & `telegram_config.json` have to be placed in the script directory (e.g., /opt/docker-backup/).
+3. **Manual Execution**:
+    ```bash
     sudo python3 /opt/docker-backup/portainer_docker_backup.py
-
-    Nightly Automation (Cron):
-    Plaintext
-
+    ```
+4. **Nightly Automation (Cron)**:
+    ```text
     0 3 * * * /usr/bin/python3 /opt/docker-backup/portainer_docker_backup.py >> /opt/docker-backup/cron_execution.log 2>&1
+    ```
 
 ## 🔄 Disaster Recovery (to be implemented)
 
-    Install Docker and Portainer on the new host.
-
-    Locate the container's backup folder on the NAS (/media/nas/backup/portainer_docker/<container_name>/).
-
-    Recreate the container using the saved docker-compose.yml file.
-
-    If the service used an archived bind mount, restore the files by extracting the .tar.gz archive as root:
-    Bash
-
+1. Install Docker and Portainer on the new host.
+2. Locate the container's backup folder on the NAS (/media/nas/backup/portainer_docker/<container_name>/).
+3. Recreate the container using the saved docker-compose.yml file.
+4. If the service used an archived bind mount, restore the files by extracting the .tar.gz archive as root:
+   ```bash
     sudo tar xzf <folder_name>.tar.gz -C /target/path/
+   ```
 
 ## 📝 License
 
