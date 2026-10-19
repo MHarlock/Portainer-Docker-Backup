@@ -22,14 +22,13 @@ Il progetto è pensato per garantire una protezione totale dei dati e delle conf
    ```text
    //192.168.x.x/Backup /media/nas/backup cifs credentials=/etc/samba/credentials,vers=3.0,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,nofail,_netdev 0 0
    ```
-    File di configurazione (backup_config.json e telegram_config.json) posizionati nella cartella dello script (es. /opt/docker-backup/).
-
-    Esecuzione Manuale:
+2. **File di configurazione** 
+   backup_config.json e telegram_config.json devono essere posizionati nella cartella dello script (es. /opt/docker-backup/).
+3. **Esecuzione Manuale**:
     ```bash
     sudo python3 /opt/docker-backup/portainer_docker_backup.py
     ```
-
-    Automazione Notturna (Cron):
+4. **Automazione Notturna (Cron)**:
     ```plaintext
     0 3 * * * /usr/bin/python3 /opt/docker-backup/portainer_docker_backup.py >> /opt/docker-backup/cron_execution.log 2>&1
     ```
