@@ -4,3 +4,5 @@ __pycache__/
 telegram_config.log
 telegram_config.json
 backup_docker.log
+nas
+nas.pub
