@@ -1,0 +1,90 @@
+{
+  "nas_mount_point": "/media/nas/backup",
+  "backup_destination_subfolder": "portainer_docker",
+  "containers": [
+    {
+      "name": "cloudflared-tunnel",
+      "stop": false,
+      "paths": [
+        "/opt/docker/stacks/cloudflared"
+      ]
+    },
+    {
+      "name": "homeassistant",
+      "stop": false,
+      "paths": [
+        "/docker/homeassistant/config/backups"
+      ]
+    },
+    {
+      "name": "mosquitto",
+      "stop": true,
+      "group": "zigbee_mqtt_stack",
+      "paths": [
+        "/docker/mosquitto"
+      ]
+    },
+    {
+      "name": "zigbee2mqtt",
+      "stop": true,
+      "group": "zigbee_mqtt_stack",
+      "paths": [
+        "/docker/zigbee2mqtt"
+      ]
+    },
+    {
+      "name": "nginx-proxy-manager",
+      "stop": false,
+      "paths": [
+        "/docker/nginx-proxy-manager"
+      ]
+    },
+    {
+      "name": "pihole",
+      "stop": true,
+      "group": "pihole",
+      "paths": [
+        "/docker/pihole"
+      ]
+    },
+    {
+      "name": "portainer",
+      "stop": true,
+      "group": "portainer",
+      "volumes": [
+        "portainer_data"
+      ],
+      "paths": [
+        "/opt/docker/stacks/portainer"
+      ]
+    },
+    {
+      "name": "qbittorrent",
+      "stop": true,
+      "paths": [
+        "/docker/qbittorrent"
+      ]
+    },
+    {
+      "name": "transmission",
+      "stop": true,
+      "paths": [
+        "/docker/transmission"
+      ]
+    },
+    {
+      "name": "transmission-telegram",
+      "stop": true,
+      "paths": [
+        "/docker/transmission-telegram"
+      ]
+    },
+    {
+      "name": "wg-easy",
+      "stop": false,
+      "paths": [
+        "/docker/wg-easy"
+      ]
+    }
+  ]
+}
